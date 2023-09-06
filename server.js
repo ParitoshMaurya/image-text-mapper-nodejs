@@ -17,7 +17,53 @@ const upload = multer({ dest: 'uploads/' });
 
 const TEMPLATE_IMAGE = "https://developer-test-bucket-12.s3.eu-north-1.amazonaws.com/BaseImage.jpeg";
 
-const uploadToB2Promise = (editedImage, keyName) => new Promise(async (res, rej) => {
+const sendMessageService = (mobileNumber, urlToSend) => {
+  let data = JSON.stringify({
+    "@VER": "1.2",
+    "USER": {
+      "@UNIXTIMESTAMP": ""
+    },
+    "DLR": {
+      "@URL": ""
+    },
+    "SMS": [
+      {
+        "@UDH": "0",
+        "@CODING": "1",
+        "@TEXT": "",
+        "@TEMPLATEINFO": "1022527201~for account number XXXX89",
+        "@MEDIADATA": urlToSend,
+        "@MSGTYPE": "3",
+        "@TYPE": "image",
+        "@PROPERTY": "0",
+        "@ID": "1",
+        "ADDRESS": [
+          {
+            "@FROM": "917428306034",
+            "@TO": `91${mobileNumber}`,
+            "@SEQ": "1",
+            "@TAG": "some clientside random data"
+          }
+        ]
+      }
+    ]
+  });
+
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://api.myvaluefirst.com/psms/servlet/psms.JsonEservice',
+    headers: {
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FwaS5teXZhbHVlZmlyc3QuY29tL3BzbXMiLCJzdWIiOiJkZW1vd2FiYXMiLCJleHAiOjE4MjAyMzY0NDd9.Waxaq8D7ZkeH28oor-HJJMkG5KMwolySC9JpWnfmadQ',
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+
+  return axios.request(config);
+}
+
+const uploadToB2Promise = (editedImage, keyName, mobileNumber) => new Promise(async (res, rej) => {
   try {
     // Upload the edited image to Backblaze B2
     const bucketName = 'test-developer-12';
@@ -40,6 +86,7 @@ const uploadToB2Promise = (editedImage, keyName) => new Promise(async (res, rej)
 
     // Generate the URL for the uploaded image
     const imageUrl = `https://f005.backblazeb2.com/file/${bucketName}/${fileName}`;
+    await sendMessageService(mobileNumber, imageUrl);
     console.log(imageUrl, 'Done uploaded');
     res(imageUrl);
   } catch (err) {
@@ -87,7 +134,7 @@ app.post('/edit-image', upload.single('image'), async (req, res) => {
         if (rowNumber > 1) { // means excluding header row
           if (colNumber === 1) { // Mobile number column
             mobileNumber = cellValue;
-          } 
+          }
         }
         if (rowNumber > 1 && colNumber > 2) {
           ctx.fillText(cellValue, `${left}`, `${top}`);
@@ -95,7 +142,7 @@ app.post('/edit-image', upload.single('image'), async (req, res) => {
       });
       const editedImage = canvas.toDataURL('image/png');
       const keyName = `${mobileNumber}-${Date.now()}-updatedImage.png`;
-      promiseToResolve.push(uploadToB2Promise(editedImage, keyName));
+      promiseToResolve.push(uploadToB2Promise(editedImage, keyName, mobileNumber));
     });
     // upload to S3
     const data = await Promise.all(promiseToResolve);
