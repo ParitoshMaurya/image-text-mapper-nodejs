@@ -63,6 +63,27 @@ const sendMessageService = (mobileNumber, urlToSend) => {
   return axios.request(config);
 }
 
+const columnPositionMapper = {
+  3: { top: 295, left: 93},
+  4: { top: 295, left: 218},
+  5: { top: 315, left: 93},
+  6: { top: 315, left: 218},
+  7: { top: 342, left: 93},
+  8: { top: 342, left: 218},
+  9: { top: 361, left: 93},
+  10: { top: 361, left: 218},
+  11: { top: 387, left: 93},
+  12: { top: 387, left: 218},
+  13: { top: 409, left: 93},
+  14: { top: 409, left: 218},
+  15: { top: 432, left: 93},
+  16: { top: 432, left: 218},
+  17: { top: 454, left: 93},
+  18: { top: 454, left: 218},
+  19: { top: 476, left: 93},
+  20: { top: 476, left: 218},
+}
+
 const uploadToB2Promise = (editedImage, keyName, mobileNumber) => new Promise(async (res, rej) => {
   try {
     // Upload the edited image to Backblaze B2
@@ -137,7 +158,7 @@ app.post('/edit-image', upload.single('image'), async (req, res) => {
           }
         }
         if (rowNumber > 1 && colNumber > 2) {
-          ctx.fillText(cellValue, `${left}`, `${top}`);
+          ctx.fillText(cellValue, `${columnPositionMapper[+colNumber].left}`, `${columnPositionMapper[+colNumber].top}`);
         }
       });
       const editedImage = canvas.toDataURL('image/png');
